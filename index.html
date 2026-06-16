@@ -1,7 +1,828 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-<meta http-equiv="refresh" content="0;url=https://www.youtube.com/watch?v=hB7CDrVnNCs">
-<script>window.location.replace("https://www.youtube.com/watch?v=hB7CDrVnNCs")</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Контрольная по матричным вычислениям</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&family=Caveat:wght@600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F7F8FC; --grid:#E1E6F2; --ink:#1B2138; --ink-soft:#5A6178;
+  --accent:#5B4BC4; --accent-deep:#4A3F8F; --ok:#2E7D5B; --ok-soft:#E3F2EA;
+  --pen:#D83A4E; --pen-soft:#FBE7EA; --card:#FFFFFF; --line:#D6DBEA;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:'Inter',system-ui,sans-serif; color:var(--ink);
+  background-color:var(--paper);
+  background-image:
+    linear-gradient(var(--grid) 1px,transparent 1px),
+    linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:26px 26px;
+  min-height:100%;
+  display:flex; align-items:flex-start; justify-content:center;
+  padding:20px 16px calc(20px + env(safe-area-inset-bottom));
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{width:100%; max-width:480px; margin-top:8px}
+.card{
+  background:var(--card); border:1px solid var(--line); border-radius:18px;
+  padding:26px 22px; box-shadow:0 1px 0 var(--line),0 18px 40px -28px rgba(27,33,56,.4);
+}
+.eyebrow{
+  font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.14em;
+  text-transform:uppercase; color:var(--accent-deep); font-weight:700;
+}
+h1{font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:clamp(26px,7vw,34px); line-height:1.05; margin:10px 0 6px; letter-spacing:-.01em}
+.sub{color:var(--ink-soft); font-size:15px; line-height:1.5}
+.scribble{font-family:'Caveat',cursive; color:var(--pen); font-size:21px; line-height:1; transform:rotate(-3deg); display:inline-block}
+
+/* matrix */
+.matrix-stage{display:flex; justify-content:center; margin:18px 0}
+.matrix{
+  position:relative; display:grid; grid-template-columns:repeat(6,1fr); gap:2px;
+  padding:10px 6px; border-radius:10px;
+}
+.matrix::before,.matrix::after{
+  content:""; position:absolute; top:4px; bottom:4px; width:9px;
+  border:2px solid var(--ink);
+}
+.matrix::before{left:-2px; border-right:none; border-radius:3px 0 0 3px}
+.matrix::after{right:-2px; border-left:none; border-radius:0 3px 3px 0}
+.cell{
+  font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700;
+  width:26px; height:24px; display:flex; align-items:center; justify-content:center;
+  color:var(--ink); transition:color .45s ease, transform .45s ease, opacity .45s ease;
+}
+.cell.diag{color:var(--accent)}
+.cell.zeroed{color:var(--grid); transform:scale(.8); font-weight:400}
+.cell.flash{color:var(--ok); transform:scale(1.25)}
+
+/* progress + timer */
+.meta{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px}
+.qnum{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-soft); letter-spacing:.08em}
+.timer{
+  font-family:'JetBrains Mono',monospace; font-weight:700; font-size:14px;
+  color:var(--accent-deep); background:#EEEBFA; padding:4px 10px; border-radius:20px;
+  min-width:54px; text-align:center;
+}
+.timer.warn{color:var(--pen); background:var(--pen-soft)}
+.bar{height:4px; background:var(--grid); border-radius:4px; overflow:hidden; margin-bottom:20px}
+.bar > i{display:block; height:100%; background:var(--accent); width:0; transition:width .4s ease}
+
+.qtext{font-family:'Space Grotesk',sans-serif; font-weight:500; font-size:20px; line-height:1.3; margin-bottom:18px}
+.qtext code{font-family:'JetBrains Mono',monospace; font-weight:700; background:#EEEBFA; padding:1px 6px; border-radius:5px; font-size:.92em}
+
+.opts{display:flex; flex-direction:column; gap:10px}
+.opt{
+  font-family:inherit; font-size:15.5px; text-align:left; color:var(--ink);
+  background:var(--card); border:1.5px solid var(--line); border-radius:12px;
+  padding:14px 16px; cursor:pointer; line-height:1.35; width:100%;
+  transition:border-color .15s, background .15s, transform .08s;
+  display:flex; gap:10px; align-items:flex-start;
+}
+.opt:hover{border-color:var(--accent); background:#FAF9FE}
+.opt:active{transform:scale(.99)}
+.opt .key{font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--accent-deep); flex:none}
+.opt:disabled{cursor:default}
+.opt.selected{border-color:var(--accent); background:#EEEBFA}
+.opt.correct{border-color:var(--ok); background:var(--ok-soft)}
+.opt.correct .key{color:var(--ok)}
+.opt.wrong{border-color:var(--pen); background:var(--pen-soft)}
+.opt.wrong .key{color:var(--pen)}
+
+.explain{
+  margin-top:16px; font-size:14px; line-height:1.5; color:var(--ink-soft);
+  border-left:3px solid var(--ok); padding:6px 0 6px 14px; opacity:0;
+  transition:opacity .3s; min-height:0;
+}
+.explain.show{opacity:1}
+.explain.miss{border-color:var(--pen)}
+.explain.bare{border-left:none; padding-left:0; min-height:0}
+.explain code{font-family:'JetBrains Mono',monospace; background:#EEF0F7; padding:1px 5px; border-radius:4px}
+.pen-note{font-family:'Caveat',cursive; color:var(--pen); font-size:19px; display:block; margin-top:4px}
+
+.btn{
+  font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:16px;
+  background:var(--accent); color:#fff; border:none; border-radius:12px;
+  padding:15px 20px; width:100%; cursor:pointer; margin-top:22px;
+  transition:background .15s, transform .08s;
+}
+.btn:hover{background:var(--accent-deep)} .btn:active{transform:scale(.99)}
+.btn.ghost{background:transparent; color:var(--accent-deep); border:1.5px solid var(--line); margin-top:10px}
+.btn.ghost:hover{border-color:var(--accent); background:#FAF9FE}
+
+.record{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-soft); margin-top:16px; text-align:center}
+.record b{color:var(--accent-deep)}
+
+/* leaderboard */
+.board-wrap{margin-top:20px}
+.board-title{font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--accent-deep); font-weight:700; margin-bottom:8px; text-align:center}
+.board{width:100%; border-collapse:collapse; font-size:14px}
+.board td{padding:8px 6px; border-bottom:1px solid var(--grid)}
+.board tr:last-child td{border-bottom:none}
+.board .rk{font-family:'JetBrains Mono',monospace; color:var(--ink-soft); width:22px; font-weight:700}
+.board .nm{color:var(--ink); font-weight:500}
+.board .vr{font-family:'JetBrains Mono',monospace; color:var(--ink-soft); text-align:right; white-space:nowrap}
+.board .sc{font-family:'JetBrains Mono',monospace; font-weight:700; color:var(--accent-deep); text-align:right; width:56px}
+.board tr.me td{background:#EEEBFA}
+.board tr.me .nm::after{content:" ←"; color:var(--accent)}
+
+.saverow{display:flex; gap:8px; margin-top:18px}
+.nameinput{
+  flex:1; min-width:0; font-family:inherit; font-size:15px; color:var(--ink);
+  border:1.5px solid var(--line); border-radius:12px; padding:13px 14px; background:#fff;
+}
+.nameinput:focus{outline:none; border-color:var(--accent)}
+.savebtn{margin-top:0; width:auto; white-space:nowrap; padding:13px 18px}
+
+/* OMR-бланк (стилизация под реальный тест) */
+.omr-strip{display:flex; align-items:center; gap:5px; margin-bottom:4px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink); font-weight:700}
+.omr-strip .bars{display:flex; gap:3px; align-items:center}
+.omr-strip .bars i{display:block; width:3px; height:15px; background:var(--ink)}
+.omr-strip .bars i.w{width:6px}
+.omr-strip .code{letter-spacing:.08em}
+.omr-head{font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:2px}
+.omr-test{font-family:'JetBrains Mono',monospace; font-size:13px; font-weight:700; letter-spacing:.06em; color:var(--accent-deep); margin-bottom:14px}
+.bubbles{display:flex; flex-direction:column; gap:5px; margin:14px 0}
+.bubrow{display:flex; gap:7px; justify-content:center}
+.bubble{
+  width:24px; height:24px; border-radius:50%; border:1.5px solid var(--line);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-soft);
+  cursor:pointer; transition:background .12s, color .12s, border-color .12s;
+}
+.bubble:hover{border-color:var(--accent); color:var(--accent-deep)}
+.bubble.fill{background:var(--ink); color:#fff; border-color:var(--ink)}
+.namefield{display:flex; align-items:baseline; gap:8px; margin:16px 0 4px}
+.namefield label{font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-soft); white-space:nowrap}
+.namefield input{
+  flex:1; min-width:0; font-family:inherit; font-size:15px; color:var(--ink);
+  border:none; border-bottom:1.5px dashed var(--line); padding:6px 2px; background:transparent;
+}
+.namefield input:focus{outline:none; border-bottom-color:var(--accent)}
+
+/* result */
+.grade-wrap{text-align:center; margin:6px 0 10px}
+.grade{font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:64px; line-height:1; color:var(--accent)}
+.grade-label{font-family:'Caveat',cursive; color:var(--pen); font-size:26px; transform:rotate(-4deg); display:inline-block; margin-top:6px}
+.score-line{font-family:'JetBrains Mono',monospace; font-size:14px; color:var(--ink-soft); margin-top:14px; text-align:center}
+.score-line b{color:var(--ink); font-size:18px}
+.breakdown{margin-top:18px; display:flex; flex-direction:column; gap:7px}
+.brow{display:flex; align-items:center; gap:10px; font-size:13.5px; color:var(--ink-soft)}
+.brow .mk{font-family:'JetBrains Mono',monospace; font-weight:700; flex:none; width:18px}
+.brow .mk.y{color:var(--ok)} .brow .mk.n{color:var(--pen)}
+
+/* rick */
+.rick-frame{margin-top:18px; border-radius:12px; overflow:hidden; border:1px solid var(--line); background:#000}
+.rick-frame iframe,.rick-frame video{display:block; width:100%; aspect-ratio:16/9; border:0}
+.rick-placeholder{
+  background:#0E1020; color:#cfd2e0; border-radius:12px; padding:26px 20px; margin-top:18px;
+  text-align:center; font-size:14px; line-height:1.55;
+}
+.rick-placeholder .big{font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:22px; color:#fff; display:block; margin-bottom:8px}
+.rick-placeholder code{font-family:'JetBrains Mono',monospace; color:#8fd0ff; font-size:12px}
+
+.hidden{display:none}
+.fade{animation:fade .35s ease}
+@keyframes fade{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+footer{text-align:center; margin-top:18px; font-family:'JetBrains Mono',monospace; font-size:11px; color:#a9afc4}
+</style>
 </head>
+<body>
+<div class="wrap">
+  <div class="card" id="card"></div>
+  <footer id="foot">A = QR · сделано через боль</footer>
+</div>
+
+<script>
+"use strict";
+
+/* ============================================================
+   РИКРОЛЛ: вставь сюда ссылку, когда видео будет готово.
+   Поддерживается:
+     - YouTube:  "https://www.youtube.com/watch?v=XXXX"  или  "https://youtu.be/XXXX"
+     - твой файл: положи рядом в репозиторий и впиши  "rick.mp4"
+   Пока пусто — показывается заглушка с инструкцией.
+   ============================================================ */
+const RICK_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+
+/* ---------- содержание теста ----------
+   у каждого вопроса: opts[], correct = индекс верного.
+   порядок вариантов рандомизируется при показе. */
+const BANK = [
+  /* ===== ВЫЧИСЛИТЕЛЬНЫЕ (числовой ответ, без пояснений) ===== */
+  {
+    q: 'Собственные значения матрицы: {10, 4, −3}. Асимптотический фактор сходимости степенного метода?',
+    opts: ['0.4', '0.3', '0.75', '0.6', '0.133'],
+    correct: 0, why: ''
+  },
+  {
+    q: 'Собственные значения: {7, −7, 3, 1}. Куда сойдётся степенной метод?',
+    opts: ['не сойдётся к одному вектору', 'к 7 со скоростью 3/7', 'к ±7, осциллируя по знаку', 'к 7 со скоростью 1/7', 'к 3 со скоростью 3/7'],
+    correct: 0, why: ''
+  },
+  {
+    q: 'cond₂(A) = 50. Чему равно cond₂(AᵀA)?',
+    opts: ['2500', '50', '100', '≈7.07', '≈707'],
+    correct: 0, why: ''
+  },
+  {
+    q: 'LU матрицы n×n стоит ≈ ⅔n³ флопов. Сколько стоит разложение Холецкого (симметричная положительно определённая)?',
+    opts: ['≈ ⅓n³', '≈ ⅔n³', '≈ ⁴⁄₃n³', '≈ n³', '≈ ½n³'],
+    correct: 0, why: ''
+  },
+  {
+    q: 'QR через Хаусхолдер для m×n при m ≫ n. Число операций примерно равно...',
+    opts: ['2mn²', '2m²n', '4mn²', 'm²n²', '⅔mn'],
+    correct: 0, why: ''
+  },
+  {
+    q: 'Симметричная положительно определённая матрица, cond = 10⁴. Оценка числа итераций CG?',
+    opts: ['~100', '~10⁴', '~10⁸', '~50', '~1000'],
+    correct: 0, why: ''
+  },
+  {
+    q: 'Симметричная положительно определённая матрица 500×500 имеет всего 4 различных собственных значения. За сколько итераций CG (точная арифметика) даст точное решение?',
+    opts: ['не больше 4', 'не больше 8', '≈22', '500', '250'],
+    correct: 0, why: ''
+  },
+  {
+    q: 'eig(A) = {2, 3}, eig(B) = {1, −1}. Собственные значения кронекерова произведения A ⊗ B?',
+    opts: ['{2, −2, 3, −3}', '{3, 1, 4, 2}', '{2, 3, 1, −1}', '{2, −2, 6, −6}', '{1, −1, 1.5, −1.5}'],
+    correct: 0, why: ''
+  },
+  {
+    q: 'A размера 3×3, B размера 4×4. Размер матрицы A ⊗ B?',
+    opts: ['12×12', '7×7', '12×7', '9×16', '144×144'],
+    correct: 0, why: ''
+  },
+  {
+    q: 'Показатель сложности алгоритма Штрассена: n в степени...',
+    opts: ['log₂7 ≈ 2.807', '3', '2', '2.373', '2.5'],
+    correct: 0, why: ''
+  },
+  {
+    q: 'Лучшее приближение ранга k, ошибка в спектральной норме ‖A − Aₖ‖₂?',
+    opts: ['σₖ₊₁', 'σₖ', '√(σ²ₖ₊₁ + … + σ²ᵣ)', 'σₖ₊₁ + … + σᵣ', 'σ₁ − σₖ'],
+    correct: 0, why: ''
+  },
+  {
+    q: 'Модельная задача (дискретный лапласиан), ρ(Якоби) = 0.5. Чему равен ρ(Гаусс–Зейдель)?',
+    opts: ['0.25', '0.5', '≈0.707', '0.125', '0.354'],
+    correct: 0, why: ''
+  },
+  {
+    q: 'Циркулянтная матрица n×n. Умножение её на вектор через диагонализацию матрицей Фурье стоит...',
+    opts: ['O(n log n)', 'O(n²)', 'O(n log²n)', 'O(n)', 'O(n^{3/2})'],
+    correct: 0, why: ''
+  },
+
+  /* ===== КОВАРНЫЕ (правдоподобные варианты, ловушка в деталях) ===== */
+  {
+    q: 'A = UΣVᵀ — это SVD. Псевдообратная Мура–Пенроуза A⁺ равна...',
+    opts: ['VΣ⁺Uᵀ', 'UΣ⁺Vᵀ', 'VΣUᵀ', 'UᵀΣ⁺V', 'VΣ⁺Vᵀ', 'UΣ⁺Uᵀ'],
+    correct: 0,
+    why: 'Меняются местами U и V, а Σ инвертируется (ненулевые σ → 1/σ): A⁺ = VΣ⁺Uᵀ. Вариант UΣ⁺Vᵀ — перепутаны множители, VΣUᵀ — забыли инвертировать.'
+  },
+  {
+    q: 'Для какой матрицы существует разложение Холецкого A = LLᵀ с вещественной L?',
+    opts: ['симметричная положительно определённая', 'любая симметричная', 'симметричная неотрицательно определённая', 'с положительным определителем', 'симметричная с положительным следом', 'любая невырожденная'],
+    correct: 0,
+    why: 'Нужна именно положительная определённость. Полуопределённая даёт вырожденную L, индефинитная — комплексную; для них берут LDLᵀ.'
+  },
+  {
+    q: 'Итерация xₖ₊₁ = Bxₖ + c сходится при любом начальном приближении тогда и только тогда, когда...',
+    opts: ['ρ(B) < 1', 'ρ(B) ≤ 1', '‖B‖₂ < 1', '‖B‖ < 1 хотя бы в одной норме', 'det(B) < 1'],
+    correct: 0,
+    why: 'Критерий — строго ρ(B) < 1. Нестрогое ≤ 1 допускает расходимость (жорданов блок), а нормы дают лишь достаточные условия.'
+  },
+  {
+    q: 'Ошибка лучшего приближения ранга k в норме Фробениуса ‖A − Aₖ‖_F равна...',
+    opts: ['√(σ²ₖ₊₁ + … + σ²ᵣ)', 'σₖ₊₁', 'σₖ₊₁ + … + σᵣ', 'σ²ₖ₊₁ + … + σ²ᵣ', 'σₖ'],
+    correct: 0,
+    why: 'В Фробениусе — корень из суммы квадратов отброшенных σ. Без корня (σ²+…) или просто σₖ₊₁ (это спектральная норма) — частые подмены.'
+  },
+  {
+    q: 'Вещественная матрица, доминирующие собственные значения — комплексно-сопряжённая пара a ± bi. Что сделает степенной метод?',
+    opts: ['не сойдётся', 'сойдётся к вещественной части', 'сойдётся за два шага', 'сойдётся к собственному вектору a + bi', 'сойдётся к большему по модулю из пары'],
+    correct: 0,
+    why: 'У сопряжённой пары равные модули — единственной доминанты нет, обычный степенной метод не сходится. Нужны блочные варианты.'
+  },
+  {
+    q: 'Q размера m×k с ортонормированными столбцами. Ортогональный проектор на столбцовое пространство Q?',
+    opts: ['QQᵀ', 'QᵀQ', 'QQᵀQ', 'QᵀQQᵀ', '(QᵀQ)⁻¹Qᵀ'],
+    correct: 0,
+    why: 'P = QQᵀ (размер m×m, ранг k), симметричен и идемпотентен. А QᵀQ = Iₖ; QQᵀQ = Q; (QᵀQ)⁻¹Qᵀ = Qᵀ — ни одно не проектор.'
+  },
+  {
+    q: 'Итерация Рэлея для симметричной матрицы вблизи решения сходится...',
+    opts: ['кубически', 'квадратично', 'линейно', 'сверхлинейно, но медленнее кубической', 'кубически только для матриц 2×2'],
+    correct: 0,
+    why: 'Для симметричных матриц — кубическая сходимость. Квадратичная была бы для несимметричных: ловушка в слове «симметричная».'
+  },
+  {
+    q: 'При каком параметре релаксации ω метод SOR может сходиться?',
+    opts: ['0 < ω < 2', '0 < ω < 1', '1 < ω < 2', 'любой ω > 0', '0 < ω ≤ 1', 'ω ≥ 1'],
+    correct: 0,
+    why: 'Необходимое условие (теорема Кахана): 0 < ω < 2. При ω вне этого интервала метод расходится.'
+  },
+  {
+    q: 'У какой матрицы собственные значения наиболее устойчивы к малым возмущениям?',
+    opts: ['нормальной (AAᵀ = AᵀA)', 'верхнетреугольной', 'с большим cond матрицы собственных векторов', 'сильно несимметричной', 'с кратными собственными значениями', 'с диагональным преобладанием'],
+    correct: 0,
+    why: 'У нормальной собственные векторы ортогональны (cond = 1), по Бауэру–Файку |δλ| ≤ ‖δA‖. Большой cond собственных векторов — наоборот, источник чувствительности.'
+  },
+  {
+    q: 'cond₂(Q) для ортогональной матрицы Q?',
+    opts: ['1', 'n', '√n', 'λmax / λmin', 'σmax · σmin', '|det Q|'],
+    correct: 0,
+    why: 'Все сингулярные числа равны 1, поэтому cond₂(Q) = 1. λmax/λmin (собственные, не сингулярные) и det — подмены понятий.'
+  },
+  {
+    q: 'Метод Якоби гарантированно сходится, если матрица...',
+    opts: ['со строгим диагональным преобладанием', 'симметричная положительно определённая', 'невырожденная', 'с положительными собственными значениями', 'верхнетреугольная'],
+    correct: 0,
+    why: 'Достаточное условие — строгое диагональное преобладание. SPD гарантирует сходимость Гаусса–Зейделя, но для Якоби её недостаточно (нужна и 2D−A ≻ 0).'
+  },
+  {
+    q: 'QR-алгоритм (не QR-разложение!) предназначен для...',
+    opts: ['итеративного поиска собственных значений', 'однократного разложения A = QR', 'решения системы Ax = b', 'вычисления псевдообратной', 'прямого вычисления SVD', 'ортогонализации столбцов'],
+    correct: 0,
+    why: 'QR-алгоритм многократно выполняет A = QR → RQ и сходится к форме Шура (собственные значения). Само QR-разложение — лишь его шаг.'
+  },
+
+  /* ===== КОВАРНЫЕ с длинными ловушками (правильный — короткий) ===== */
+  {
+    q: 'Множитель роста элементов в LU с частичным выбором главного элемента в худшем случае...',
+    opts: [
+      'может достигать 2^{n−1}',
+      'строго ограничен n по теореме Уилкинсона, что делает метод безусловно устойчивым для любых матриц и устраняет необходимость в полном выборе',
+      'всегда равен единице, так как перестановки строк полностью компенсируют усиление ошибок округления на каждом шаге',
+      'ограничен величиной cond(A), умноженной на машинный эпсилон'
+    ],
+    correct: 0,
+    why: 'Частичный выбор не спасает: пример Уилкинсона даёт 2^{n−1}. На практике почти не встречается, но гарантии нет.'
+  },
+  {
+    q: 'Почему для сильно ненормальной матрицы спектр плохо предсказывает поведение ‖Aᵏ‖?',
+    opts: [
+      'её собственные векторы далеки от ортогональных',
+      'у ненормальных матриц собственные значения комплексны и лежат вне единичного круга, поэтому спектральный радиус не определён и заменяется числовым радиусом',
+      'ненормальные матрицы в принципе не диагонализуемы и не имеют собственных значений',
+      'спектральный радиус у них всегда больше единицы из-за нарушения теоремы Шура'
+    ],
+    correct: 0,
+    why: 'Базис собственных векторов сильно неортогонален (cond(V) велик) — транзиентный рост управляется псевдоспектром, а не спектром.'
+  },
+  {
+    q: 'Алгоритм называют обратно устойчивым (backward stable), если...',
+    opts: [
+      'вычисленный ответ точно решает слегка возмущённую исходную задачу',
+      'относительная погрешность результата не превышает машинного эпсилона, умноженного на число обусловленности, при расширенной точности промежуточных операций',
+      'прямая ошибка монотонно убывает к нулю при росте размерности и измельчении округления',
+      'его прямая ошибка всегда меньше обратной для любых входных данных'
+    ],
+    correct: 0,
+    why: 'Backward stable: f̂(x) = f(x+δx) с малым δx. Прямая ошибка ≈ обратная ошибка × число обусловленности.'
+  },
+  {
+    q: 'Для произвольной квадратной матрицы сингулярные числа — это...',
+    opts: [
+      'корни из собственных значений AᵀA',
+      'модули собственных значений, так как любая матрица унитарно подобна диагональной по спектральной теореме, верной для всех операторов',
+      'диагональные элементы после приведения к жордановой форме подобия',
+      'абсолютные величины диагональных элементов треугольного множителя QR-разложения'
+    ],
+    correct: 0,
+    why: 'σᵢ = √λᵢ(AᵀA) всегда. Совпадение с |собственными значениями| — только для нормальных матриц.'
+  },
+  {
+    q: 'Численно надёжное определение ранга матрицы даёт...',
+    opts: [
+      'SVD — по числу значимых сингулярных чисел',
+      'подсчёт ненулевых ведущих элементов после гауссова исключения без выбора главного элемента, что в точной арифметике равно размерности образа',
+      'число ненулевых диагональных элементов R в обычном QR без перестановки столбцов',
+      'максимальный размер минора с ненулевым определителем, вычисленным в плавающей точке'
+    ],
+    correct: 0,
+    why: 'Только SVD устойчиво отделяет «почти нулевые» σ от значимых. Гаусс, обычный QR и миноры на грани вырожденности численно ненадёжны.'
+  },
+  {
+    q: 'Что гарантирует обратная итерация со сдвигом σ при удачном σ?',
+    opts: [
+      'быструю сходимость к собственному вектору, ближайшему по значению к σ',
+      'сходимость строго к наибольшему по модулю собственному значению независимо от σ, поскольку обращение инвертирует порядок значений, сохраняя доминанту',
+      'одновременную сходимость ко всем собственным векторам за счёт ортогонализации на каждой итерации',
+      'сходимость к собственному вектору, наиболее удалённому от сдвига σ по модулю'
+    ],
+    correct: 0,
+    why: 'Сдвиг делает (A − σI)⁻¹ доминирующим у значения, ближайшего к σ. Точнее σ — быстрее сходимость (основа итерации Рэлея).'
+  },
+  {
+    q: 'Обусловленность задачи и устойчивость алгоритма соотносятся так:',
+    opts: [
+      'обусловленность — свойство задачи, устойчивость — свойство алгоритма',
+      'это синонимы: хорошо обусловленная задача автоматически решается устойчивым алгоритмом, а неустойчивость возникает только из-за плохих входных данных',
+      'устойчивость всегда компенсирует плохую обусловленность, если взять достаточно знаков мантиссы для промежуточных результатов',
+      'устойчивый алгоритм гарантирует малую прямую ошибку независимо от обусловленности задачи'
+    ],
+    correct: 0,
+    why: 'Независимые вещи. Даже идеальный алгоритм на плохо обусловленной задаче даст большую ошибку: итог ≈ обусловленность × обратная ошибка.'
+  }
+,
+  {
+    q: 'Укажите асимтотику перемножения двух многочленов длины n с целочисленными коэффициентами',
+    opts: ['O(n log n)', 'O(n²)', 'O(n³)', 'Ω(n)', 'Θ(n²)', 'O(n)'],
+    correct: [0,1,2,3], multi: true,
+    why: 'Попался?'
+  },
+  {
+    q: 'Какие методы корректно применять к произвольной несимметричной невырожденной системе Ax = b? (отметьте все)',
+    opts: ['GMRES', 'BiCGStab', 'LU с частичным выбором', 'метод сопряжённых градиентов (CG)', 'разложение Холецкого'],
+    correct: [0,1,2], multi: true,
+    why: 'GMRES, BiCGStab и LU работают для общих матриц. CG и Холецкий требуют симметричной положительно определённой матрицы.'
+  }
+];
+
+
+const MEME = [
+  {
+    q: 'Какого цвета носки на аватарке Мета Мелона?',
+    opts: ['Белого','Зелёного','Чёрного','Синего','Он без носков'],
+    correct: 0, meme: true,
+    why: 'Носки белые. Кто смотрел внимательно — тот знал.'
+  },
+  {
+    q: 'Кто, кроме лектора, семинаристов и ассистентов, написал больше всего сообщений в чате «ОМВ26 general»?',
+    opts: ['Dima Avdeev','Roman','Александр Благий','evisq','Papayka','Морфей'],
+    correct: 0, meme: true,
+    why: 'Не понял.'
+  },
+  {
+    q: 'Какие необычные названия переменных используют в ПДЗ? (отметьте все)',
+    opts: ['ddegree вместо deg','meow_errors_','cheremsha','ID для единичной матрицы','lastik_erorrik','sudo rm -fr /*'],
+    correct: [0,1,3,4], multi: true, meme: true,
+    why: 'Учебный совет приказал бахнуть по литровой.'
+  },
+  {
+    q: 'Кто из админ-состава был на видео для первого ПДЗ по SVD? (отметьте все)',
+    opts: ['Денис Ряполов','Аскар Цыганов','Степан Кузнецов','Ульяна Паркина','Алексей Рутковский','Михаил Король'],
+    correct: [0,1], multi: true, meme: true,
+    why: 'Их знают все.'
+  }
+];
+
+const QUIZ_LEN = 10;     // вопросов в одном прохождении
+const MEME_IN_QUIZ = 2;  // из них мемных
+let QUIZ = [];
+function pickQuiz(){
+  const memes = shuffled(MEME.length).slice(0, MEME_IN_QUIZ).map(i=>MEME[i]);
+  const reals = shuffled(BANK.length).slice(0, QUIZ_LEN-MEME_IN_QUIZ).map(i=>BANK[i]);
+  const all = memes.concat(reals);
+  // перемешать порядок, но первый вопрос пусть будет мемным — как на реальном бланке
+  const rest = shuffled(all.length).map(i=>all[i]);
+  const firstMeme = rest.findIndex(x=>x.meme);
+  if(firstMeme>0){ const m=rest.splice(firstMeme,1)[0]; rest.unshift(m); }
+  return rest;
+}
+
+const PASS_MARK = 6;           // сколько верных = «зачёт»
+const TIME_PER_Q = 25;         // секунд на вопрос
+const SCORE_BASE = 100;        // за верный ответ
+const SCORE_SPEED = 5;         // за каждую оставшуюся секунду
+
+/* ---------- состояние ---------- */
+let qi = 0, score = 0, correctCount = 0;
+const results = [];
+let timer = null, timeLeft = 0, locked = false;
+
+const card = document.getElementById('card');
+const N = 6; // размер матрицы-прогресса
+const COLS = N - 1; // столбцов под обнуление
+function stepFor(c){ return Math.round(c / QUIZ_LEN * COLS); } // сколько столбцов обнулено
+
+/* безопасный доступ к таблице рекордов (локально на устройстве) */
+const BOARD_KEY='qr_quiz_board', NAME_KEY='qr_quiz_name', BOARD_MAX=20;
+function getBoard(){ try{ const a=JSON.parse(localStorage.getItem(BOARD_KEY)||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+function getBest(){ const b=getBoard(); return b.length?b[0].score:0; }
+function lastName(){ try{ return localStorage.getItem(NAME_KEY)||''; }catch(e){ return ''; } }
+function addScore(name, sc, cor){
+  const board=getBoard();
+  board.push({name:name.slice(0,24), score:sc, correct:cor, date:Date.now()});
+  board.sort((a,b)=>b.score-a.score);
+  const top=board.slice(0,BOARD_MAX);
+  try{ localStorage.setItem(BOARD_KEY, JSON.stringify(top)); localStorage.setItem(NAME_KEY, name.slice(0,24)); }catch(e){}
+  return top;
+}
+function escapeHTML(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function boardHTML(highlightTs){
+  const board=getBoard().slice(0,5);
+  if(!board.length) return '';
+  let rows='';
+  board.forEach((e,i)=>{
+    const hot = highlightTs && e.date===highlightTs ? ' class="me"' : '';
+    rows+='<tr'+hot+'><td class="rk">'+(i+1)+'</td><td class="nm">'+escapeHTML(e.name||'аноним')+
+          '</td><td class="vr">'+e.correct+'/'+QUIZ_LEN+'</td><td class="sc">'+e.score+'</td></tr>';
+  });
+  return '<div class="board-wrap"><div class="board-title">Таблица рекордов</div>'+
+         '<table class="board"><tbody>'+rows+'</tbody></table></div>';
+}
+
+/* ---------- матрица-прогресс ---------- */
+// step = сколько столбцов уже «обнулено» (приведено к R)
+function matrixHTML(step, flashCol){
+  let cells = '';
+  for(let r=0;r<N;r++){
+    for(let c=0;c<N;c++){
+      let cls = 'cell';
+      let val;
+      if(r===c){ cls+=' diag'; val = '∗'; }
+      else if(r>c){ // поддиагональ
+        if(c < step){ cls+=' zeroed'; val='0'; if(c===flashCol) cls+=' flash'; }
+        else { val = ((r*3+c*7)%9)+1; }
+      } else { // верхняя часть
+        val = ((r*5+c*2)%9)+1;
+      }
+      cells += '<span class="'+cls+'">'+val+'</span>';
+    }
+  }
+  return '<div class="matrix-stage"><div class="matrix">'+cells+'</div></div>';
+}
+
+/* ---------- экран старта ---------- */
+let playerName = '';
+let studentNum = [null,null,null];
+let studentId = '';
+function renderStart(){
+  stopTimer();
+  studentNum = [null,null,null];
+  card.className='card fade';
+  card.innerHTML =
+    '<div class="omr-strip"><span class="bars"><i class="w"></i><i></i><i class="w"></i><i></i><i></i></span>'+
+      '<span class="code">+17/1/42+</span>'+
+      '<span class="bars" style="margin-left:auto"><i></i><i class="w"></i><i></i><i class="w"></i></span></div>'+
+    '<div class="omr-head">Основы Матричных Вычислений · 2026 г.</div>'+
+    '<div class="omr-test">ТЕСТ 17 · ВРЕМЕННОЙ СЛОТ 1</div>'+
+    '<h1>Контрольная по&nbsp;матричным вычислениям</h1>'+
+    '<p class="sub">Десять вопросов вперемешку с разминкой. На каждый — '+TIME_PER_Q+' секунд. '+
+    'Чем больше верных, тем ближе матрица к верхнетреугольной '+
+    '<code style="font-family:\'JetBrains Mono\',monospace">R</code>: собери её — завершишь QR-разложение.</p>'+
+    '<div class="bubbles" id="bubbles">'+
+      '<div class="bubrow" data-row="0">'+bubbles()+'</div>'+
+      '<div class="bubrow" data-row="1">'+bubbles()+'</div>'+
+      '<div class="bubrow" data-row="2">'+bubbles()+'</div>'+
+    '</div>'+
+    '<div class="namefield"><label>Фамилия Имя:</label>'+
+      '<input id="pname" maxlength="16" placeholder="впишите себя в ведомость" value="'+escapeHTML(lastName())+'"></div>'+
+    '<button class="btn" id="go">Начать контрольную</button>'+
+    boardHTML(null);
+  // интерактивные пузыри: один выбор на ряд, формируют номер
+  card.querySelectorAll('.bubrow').forEach(row=>{
+    row.querySelectorAll('.bubble').forEach(bub=>{
+      bub.onclick=()=>{
+        row.querySelectorAll('.bubble').forEach(x=>x.classList.remove('fill'));
+        bub.classList.add('fill');
+        studentNum[+row.dataset.row]=bub.textContent;
+      };
+    });
+  });
+  document.getElementById('go').onclick = ()=>{
+    playerName = (document.getElementById('pname').value||'').trim();
+    studentId = studentNum.every(d=>d!==null) ? studentNum.join('') : '';
+    qi=0; score=0; correctCount=0; results.length=0; QUIZ=pickQuiz(); renderQuestion();
+  };
+}
+function bubbles(){
+  let s='';
+  for(let i=0;i<=6;i++){ s+='<span class="bubble">'+i+'</span>'; }
+  return s;
+}
+
+/* ---------- экран вопроса ---------- */
+function shuffled(n){ const a=[...Array(n).keys()]; for(let i=n-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+function renderQuestion(){
+  locked=false;
+  const item = QUIZ[qi];
+  card.className='card fade';
+  const pct = Math.round((qi)/QUIZ.length*100);
+  card.innerHTML =
+    '<div class="meta">'+
+      '<span class="qnum">ВОПРОС '+(qi+1)+' / '+QUIZ.length+'</span>'+
+      '<span class="timer" id="timer">'+TIME_PER_Q+'с</span>'+
+    '</div>'+
+    '<div class="bar"><i style="width:'+pct+'%"></i></div>'+
+    matrixHTML(stepFor(correctCount),-1)+
+    '<div class="qtext">'+item.q+'</div>'+
+    '<div class="opts" id="opts"></div>'+
+    '<div class="explain" id="explain"></div>';
+
+  const opts=document.getElementById('opts');
+  const order = shuffled(item.opts.length);   // случайный порядок
+  const multi = !!item.multi;
+  order.forEach((orig,pos)=>{
+    const b=document.createElement('button');
+    b.className='opt'; b.dataset.orig=orig;
+    const key=String.fromCharCode(65+pos);
+    b.innerHTML='<span class="key">'+key+'</span><span>'+item.opts[orig]+'</span>';
+    if(multi){ b.onclick=()=>{ if(!locked) b.classList.toggle('selected'); }; }
+    else { b.onclick=()=>answer(orig,b); }
+    opts.appendChild(b);
+  });
+  if(multi){
+    const sb=document.createElement('button');
+    sb.className='btn'; sb.id='submitmulti'; sb.textContent='Ответить';
+    sb.onclick=()=>answerMulti(false);
+    card.appendChild(sb);
+  }
+  startTimer(multi);
+}
+
+function startTimer(multi){
+  timeLeft=TIME_PER_Q;
+  const el=document.getElementById('timer');
+  timer=setInterval(()=>{
+    timeLeft--;
+    if(el){ el.textContent=timeLeft+'с'; if(timeLeft<=5) el.classList.add('warn'); }
+    if(timeLeft<=0){ stopTimer(); multi ? answerMulti(true) : answer(-1,null); }
+  },1000);
+}
+function stopTimer(){ if(timer){ clearInterval(timer); timer=null; } }
+
+/* ---------- обработка ответа ---------- */
+function answer(idx, btn){
+  if(locked) return; locked=true; stopTimer();
+  const item=QUIZ[qi];
+  const correct = idx===item.correct;
+  const buttons=[...document.querySelectorAll('.opt')];
+  buttons.forEach((b)=>{
+    b.disabled=true;
+    const o=parseInt(b.dataset.orig,10);
+    if(o===item.correct) b.classList.add('correct');
+    else if(o===idx) b.classList.add('wrong');
+  });
+  finishAnswer(correct, item, idx===-1);
+}
+
+function answerMulti(timedOut){
+  if(locked) return; locked=true; stopTimer();
+  const item=QUIZ[qi];
+  const corr=item.correct;     // массив индексов
+  const buttons=[...document.querySelectorAll('.opt')];
+  const sel=buttons.filter(b=>b.classList.contains('selected')).map(b=>parseInt(b.dataset.orig,10));
+  const correct = sel.length===corr.length && corr.every(c=>sel.includes(c));
+  buttons.forEach((b)=>{
+    b.disabled=true; b.classList.remove('selected');
+    const o=parseInt(b.dataset.orig,10);
+    if(corr.includes(o)) b.classList.add('correct');
+    else if(sel.includes(o)) b.classList.add('wrong');
+  });
+  const sb=document.getElementById('submitmulti'); if(sb) sb.remove();
+  finishAnswer(correct, item, timedOut);
+}
+
+function finishAnswer(correct, item, timedOut){
+  let gained=0;
+  const prevStep=stepFor(correctCount);
+  if(correct){
+    gained=SCORE_BASE + Math.max(0,timeLeft)*SCORE_SPEED;
+    score+=gained; correctCount++;
+  }
+  const newStep=stepFor(correctCount);
+  const stage=card.querySelector('.matrix-stage');
+  if(stage) stage.outerHTML=matrixHTML(newStep, newStep>prevStep ? newStep-1 : -1);
+  results.push({correct, gained});
+
+  const ex=document.getElementById('explain');
+  ex.classList.add('show');
+  if(!item.why) ex.classList.add('bare');
+  if(correct){
+    ex.innerHTML=(item.why||'')+'<span class="pen-note">+'+gained+' баллов</span>';
+  }else{
+    ex.classList.add('miss');
+    ex.innerHTML=(item.why||'')+'<span class="pen-note">'+(timedOut?'время вышло':'неверно')+'</span>';
+  }
+
+  const next=document.createElement('button');
+  next.className='btn';
+  next.textContent = (qi<QUIZ.length-1)?'Следующий вопрос':'Узнать оценку';
+  next.onclick=()=>{ qi++; (qi<QUIZ.length)?renderQuestion():renderResult(); };
+  card.appendChild(next);
+}
+
+/* ---------- экран результата ---------- */
+function gradeFor(c){
+  // оценка по пятибалльной, по числу верных из 10
+  if(c>=9) return ['5','отлично, садись'];
+  if(c>=7) return ['4','хорошо'];
+  if(c>=5) return ['3','зачёт со скрипом'];
+  if(c>=3) return ['2','пересдача'];
+  return ['2','это даже не R'];
+}
+function renderResult(){
+  stopTimer();
+  const best=getBest(); const isRecord = score>best && score>0;
+  const [g,label]=gradeFor(correctCount);
+  card.className='card fade';
+
+  let rows='';
+  results.forEach((r,i)=>{
+    rows+='<div class="brow"><span class="mk '+(r.correct?'y':'n')+'">'+(r.correct?'✓':'✗')+'</span>'+
+          '<span>Вопрос '+(i+1)+'</span>'+
+          '<span style="margin-left:auto;font-family:\'JetBrains Mono\',monospace">'+(r.correct?'+'+r.gained:'0')+'</span></div>';
+  });
+
+  card.innerHTML =
+    '<div class="eyebrow">Результат проверки</div>'+
+    '<div class="grade-wrap"><div class="grade">'+g+'</div>'+
+      '<div class="grade-label">'+label+'</div></div>'+
+    matrixHTML(stepFor(correctCount),-1)+
+    '<div class="sub" style="text-align:center">'+
+      (correctCount>=QUIZ.length
+        ? 'Матрица приведена к <code style="font-family:\'JetBrains Mono\',monospace">R</code>. Разложение завершено.'
+        : 'Под диагональю ещё остались ненулевые элементы — до чистой R не дошло.')+
+    '</div>'+
+    '<div class="score-line"><b>'+score+'</b> баллов · верных '+correctCount+' из '+QUIZ.length+'</div>'+
+    (isRecord?'<div class="record"><b>новый рекорд!</b></div>':'')+
+    '<div class="breakdown">'+rows+'</div>'+
+    '<div id="saverow" class="saverow">'+
+      (playerName
+        ? '<button class="btn savebtn" id="save" style="width:100%">Внести «'+(studentId?'№'+studentId+' ':'')+escapeHTML(playerName)+'» в ведомость</button>'
+        : '<input id="pname2" class="nameinput" maxlength="16" placeholder="Фамилия Имя для ведомости" value="'+escapeHTML(lastName())+'">'+
+          '<button class="btn savebtn" id="save">В ведомость</button>')+
+    '</div>'+
+    '<div id="boardslot"></div>'+
+    '<button class="btn" id="bonus">Бонусный вопрос за +100 баллов</button>'+
+    '<button class="btn ghost" id="again">Пройти заново</button>';
+
+  document.getElementById('again').onclick=renderStart;
+  document.getElementById('bonus').onclick=renderBonus;
+  document.getElementById('save').onclick=()=>{
+    const fld=document.getElementById('pname2');
+    let nm=(playerName || (fld&&fld.value) || 'аноним').trim()||'аноним';
+    if(studentId) nm='№'+studentId+' '+nm;
+    addScore(nm, score, correctCount);
+    const board=getBoard(); const mine=board.find(e=>e.name===nm.slice(0,24)&&e.score===score);
+    document.getElementById('saverow').style.display='none';
+    document.getElementById('boardslot').innerHTML=boardHTML(mine?mine.date:null);
+  };
+}
+
+/* ---------- ловушка ---------- */
+function renderBonus(){
+  card.className='card fade';
+  card.innerHTML=
+    '<div class="meta"><span class="qnum">БОНУСНЫЙ ВОПРОС</span><span class="timer">+100с</span></div>'+
+    '<div class="qtext">Классический Грам–Шмидт — это грех?</div>'+
+    '<div class="opts" id="opts"></div>';
+  const variants=['Да, безусловно','Категорически да','Не согласен, но боюсь спорить'];
+  const keys=['A','B','C'];
+  const opts=document.getElementById('opts');
+  variants.forEach((t,i)=>{
+    const b=document.createElement('button');
+    b.className='opt'; b.innerHTML='<span class="key">'+keys[i]+'</span><span>'+t+'</span>';
+    b.onclick=renderRick;
+    opts.appendChild(b);
+  });
+}
+
+/* ---------- рикролл ---------- */
+function toEmbed(url){
+  if(!url) return null;
+  const yt = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([\w-]{6,})/);
+  if(yt) return {type:'yt', src:'https://www.youtube.com/embed/'+yt[1]+'?autoplay=1&rel=0'};
+  if(/\.(mp4|webm|mov)$/i.test(url)) return {type:'video', src:url};
+  return {type:'iframe', src:url};
+}
+function renderRick(){
+  stopTimer();
+  card.className='card fade';
+  const e=toEmbed(RICK_URL);
+  let media;
+  if(!e){
+    media='<div class="rick-placeholder"><span class="big">Ты ожидаемо разложился.</span>'+
+      'Сюда встанет рикролл, как только видео будет готово.<br><br>'+
+      'Открой <code>index.html</code> и впиши ссылку в строку <code>RICK_URL</code>.</div>';
+  }else if(e.type==='video'){
+    media='<div class="rick-frame"><video src="'+e.src+'" autoplay controls playsinline></video></div>';
+  }else{
+    media='<div class="rick-frame"><iframe src="'+e.src+'" allow="autoplay; encrypted-media" allowfullscreen></iframe></div>';
+  }
+  card.innerHTML=
+    '<div class="eyebrow">Проверка бонусного ответа</div>'+
+    '<h1 style="font-size:28px">Засчитано как<br>QR-разложение личности</h1>'+
+    '<p class="sub">Бонусные баллы, разумеется, тоже разложились.</p>'+
+    media+
+    '<button class="btn ghost" id="again" style="margin-top:18px">Вернуться к началу</button>';
+  document.getElementById('again').onclick=renderStart;
+}
+
+renderStart();
+</script>
+</body>
 </html>
